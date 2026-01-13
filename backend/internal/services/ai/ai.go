@@ -246,6 +246,102 @@ func (s *AIService) ProcessAndMoveToReading(newsList []models.News) error {
 	return nil
 }
 
+// GenerateEmailTemplate 根据用户描述生成邮件模板
+func (s *AIService) GenerateEmailTemplate(description string, currentTemplate string) (string, error) {
+	var prompt string
+	
+	if currentTemplate != "" {
+		// 修改现有模板
+		prompt = fmt.Sprintf(`你是一个专业的邮件模板设计师。用户希望修改现有的邮件模板。
+
+用户需求：%s
+
+当前模板：
+%s
+
+请根据用户需求修改模板。要求：
+1. 生成完整的 HTML 邮件模板
+2. 必须包含以下 Go 模板变量（保持原样不变）：
+   - {{.Date}} 日期
+   - {{.Count}} 新闻数量
+   - {{.Generated}} 生成时间
+   - {{range .News}}...{{end}} 遍历新闻
+   - {{.Title}} 原标题
+   - {{.TransTitle}} 翻译后标题
+   - {{.TransSummary}} 翻译后摘要
+   - {{.URL}} 链接
+   - {{.Source}} 来源
+   - {{.Category}} 分类
+3. 样式要美观、现代、响应式
+4. 只返回 HTML 代码，不要任何解释
+
+直接输出完整的 HTML 模板：`, description, currentTemplate)
+	} else {
+		// 创建新模板
+		prompt = fmt.Sprintf(`你是一个专业的邮件模板设计师。请根据用户的描述创建一个新闻邮件模板。
+
+用户需求：%s
+
+要求：
+1. 生成完整的 HTML 邮件模板
+2. 必须包含以下 Go 模板变量：
+   - {{.Date}} 日期
+   - {{.Count}} 新闻数量
+   - {{.Generated}} 生成时间
+   - {{range .News}}...{{end}} 遍历新闻列表
+   - 在循环内使用：{{.Title}}、{{.TransTitle}}、{{.TransSummary}}、{{.URL}}、{{.Source}}、{{.Category}}
+3. 使用 {{if .TransTitle}}{{.TransTitle}}{{else}}{{.Title}}{{end}} 来优先显示翻译标题
+4. 样式要美观、现代、响应式
+5. 颜色搭配协调，排版清晰
+6. 只返回 HTML 代码，不要任何解释
+
+直接输出完整的 HTML 模板：`, description)
+	}
+
+	resp, err := s.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: s.config.Model,
+			Messages: []openai.ChatCompletionMessage{
+				{Role: openai.ChatMessageRoleUser, Content: prompt},
+			},
+			Temperature: 0.7,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+
+	if len(resp.Choices) > 0 {
+		content := resp.Choices[0].Message.Content
+		// 清理可能的 markdown 代码块标记
+		content = cleanHTMLResponse(content)
+		return content, nil
+	}
+	return "", fmt.Errorf("no response from AI")
+}
+
+// cleanHTMLResponse 清理 AI 返回的 HTML 代码
+func cleanHTMLResponse(content string) string {
+	// 移除 markdown 代码块标记
+	if len(content) > 7 && content[:7] == "```html" {
+		content = content[7:]
+	} else if len(content) > 3 && content[:3] == "```" {
+		content = content[3:]
+	}
+	if len(content) > 3 && content[len(content)-3:] == "```" {
+		content = content[:len(content)-3]
+	}
+	// 去除首尾空白
+	for len(content) > 0 && (content[0] == '\n' || content[0] == '\r' || content[0] == ' ') {
+		content = content[1:]
+	}
+	for len(content) > 0 && (content[len(content)-1] == '\n' || content[len(content)-1] == '\r' || content[len(content)-1] == ' ') {
+		content = content[:len(content)-1]
+	}
+	return content
+}
+
 // SetAutoPushCallback 设置自动推送回调
 var AutoPushCallback func() error
 

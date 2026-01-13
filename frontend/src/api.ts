@@ -46,6 +46,8 @@ export const createTemplate = (data: any) => api.post('/templates', data);
 export const updateTemplate = (id: string, data: any) => api.put(`/templates/${id}`, data);
 export const deleteTemplate = (id: string) => api.delete(`/templates/${id}`);
 export const previewTemplate = (content: string) => api.post('/templates/preview', { content });
+export const aiGenerateTemplate = (description: string, currentTemplate?: string) => 
+  api.post('/templates/ai-generate', { description, current_template: currentTemplate }, { timeout: 120000 });
 
 // AI配置
 export const getAIConfig = () => api.get('/ai/config');

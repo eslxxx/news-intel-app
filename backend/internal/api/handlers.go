@@ -78,6 +78,7 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 	api.Put("/templates/:id", h.UpdateTemplate)
 	api.Delete("/templates/:id", h.DeleteTemplate)
 	api.Post("/templates/preview", h.PreviewTemplate)
+	api.Post("/templates/ai-generate", h.AIGenerateTemplate)
 
 	// AI配置
 	api.Get("/ai/config", h.GetAIConfig)
@@ -743,6 +744,28 @@ func (h *Handler) PreviewTemplate(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"html": html, "news_count": len(news)})
+}
+
+// AIGenerateTemplate AI生成邮件模板
+func (h *Handler) AIGenerateTemplate(c *fiber.Ctx) error {
+	var req struct {
+		Description     string `json:"description"`
+		CurrentTemplate string `json:"current_template"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	if req.Description == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "请输入模板设计需求"})
+	}
+
+	template, err := h.ai.GenerateEmailTemplate(req.Description, req.CurrentTemplate)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "AI 生成失败: " + err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"template": template})
 }
 
 // ========== AI配置相关 ==========
