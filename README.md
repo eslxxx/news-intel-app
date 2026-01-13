@@ -26,9 +26,6 @@
 ### 邮件模板编辑器（支持 AI 生成）
 ![邮件模板](docs/images/templates.png)
 
-### 新闻源管理
-![新闻源管理](docs/images/sources.png)
-
 ### AI 配置
 ![AI配置](docs/images/ai-config.png)
 
