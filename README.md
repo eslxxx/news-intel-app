@@ -5,11 +5,32 @@
 ## 功能特性
 
 - 多源新闻采集（支持任意 RSS 源）
-- AI 翻译和摘要（兼容 OpenAI API）
+- AI 翻译和摘要（兼容 OpenAI API，支持双语翻译）
+- 批量翻译模式，节省 API 调用成本
 - 多渠道推送（邮箱、ntfy）
-- HTML 邮件模板编辑器
+- AI 智能生成邮件模板
 - 定时任务调度
 - Web 管理后台
+
+## 界面预览
+
+### 仪表盘
+![仪表盘](docs/images/dashboard.png)
+
+### 新闻列表
+![新闻列表](docs/images/news-list.png)
+
+### 阅读窗口
+![阅读窗口](docs/images/reading.png)
+
+### 邮件模板编辑器（支持 AI 生成）
+![邮件模板](docs/images/templates.png)
+
+### 新闻源管理
+![新闻源管理](docs/images/sources.png)
+
+### AI 配置
+![AI配置](docs/images/ai-config.png)
 
 ## 快速部署
 
@@ -118,6 +139,15 @@ npm run dev
 | The Verge | https://www.theverge.com/rss/index.xml | tech |
 | BBC News | https://feeds.bbci.co.uk/news/world/rss.xml | international |
 
+### AI 翻译配置
+
+支持三种翻译模式：
+- `zh-CN` - 仅中文
+- `ug` - 仅维吾尔语
+- `zh-ug` - 中文 + 维吾尔语双语
+
+在 AI 配置页面设置目标语言即可。
+
 ## API 端点
 
 | 方法 | 路径 | 说明 |
@@ -130,6 +160,7 @@ npm run dev
 | GET | /api/channels | 获取推送渠道 |
 | GET | /api/tasks | 获取推送任务 |
 | GET | /api/templates | 获取邮件模板 |
+| POST | /api/templates/ai-generate | AI 生成邮件模板 |
 | GET | /api/ai/config | 获取 AI 配置 |
 | GET | /api/stats | 获取统计数据 |
 
