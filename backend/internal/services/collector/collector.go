@@ -135,19 +135,9 @@ func (c *Collector) CollectAll() ([]models.News, error) {
 	return allNewNews, nil
 }
 
-// GetDefaultSources 获取默认新闻源
+// GetDefaultSources 获取默认新闻源（空列表，用户需在 Web 界面添加）
 func GetDefaultSources() []models.NewsSource {
-	return []models.NewsSource{
-		{ID: uuid.New().String(), Name: "Hacker News", Type: "rss", URL: "https://hnrss.org/frontpage", Category: "tech", Enabled: true, Interval: 30},
-		{ID: uuid.New().String(), Name: "TechCrunch", Type: "rss", URL: "https://techcrunch.com/feed/", Category: "tech", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "The Verge", Type: "rss", URL: "https://www.theverge.com/rss/index.xml", Category: "tech", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "Ars Technica", Type: "rss", URL: "https://feeds.arstechnica.com/arstechnica/index", Category: "tech", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "MIT Tech Review", Type: "rss", URL: "https://www.technologyreview.com/feed/", Category: "ai", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "AI News", Type: "rss", URL: "https://www.artificialintelligence-news.com/feed/", Category: "ai", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "GitHub Trending", Type: "rss", URL: "https://ossinsight.io/blog/rss.xml", Category: "github", Enabled: true, Interval: 120},
-		{ID: uuid.New().String(), Name: "Al Jazeera World", Type: "rss", URL: "https://www.aljazeera.com/xml/rss/all.xml", Category: "international", Enabled: true, Interval: 60},
-		{ID: uuid.New().String(), Name: "BBC News", Type: "rss", URL: "https://feeds.bbci.co.uk/news/world/rss.xml", Category: "international", Enabled: true, Interval: 60},
-	}
+	return []models.NewsSource{}
 }
 
 // InitDefaultSources 初始化默认新闻源
