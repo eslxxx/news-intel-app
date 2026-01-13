@@ -839,13 +839,20 @@ func (h *Handler) TranslateText(c *fiber.Ctx) error {
 
 func (h *Handler) SummarizeText(c *fiber.Ctx) error {
 	var req struct {
-		Text string `json:"text"`
+		Text       string `json:"text"`
+		TargetLang string `json:"target_lang"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	result, err := h.ai.Summarize(req.Text)
+	// 默认使用中文
+	targetLang := req.TargetLang
+	if targetLang == "" {
+		targetLang = "zh-CN"
+	}
+
+	result, err := h.ai.Summarize(req.Text, targetLang)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}

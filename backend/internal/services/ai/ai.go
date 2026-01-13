@@ -98,13 +98,28 @@ func (s *AIService) Translate(text, targetLang string) (string, error) {
 	return "", fmt.Errorf("no response from AI")
 }
 
-// Summarize 生成摘要
-func (s *AIService) Summarize(text string) (string, error) {
+// Summarize 生成摘要（支持多语言）
+func (s *AIService) Summarize(text string, targetLang string) (string, error) {
 	if text == "" {
 		return "", nil
 	}
 
-	prompt := fmt.Sprintf("为以下新闻生成一个简洁的中文摘要（不超过100字）：\n\n%s", text)
+	var prompt string
+	switch targetLang {
+	case "zh-ug":
+		// 双语摘要：中文 + 维吾尔语
+		prompt = fmt.Sprintf(`为以下新闻生成双语摘要，格式如下：
+【中文】中文摘要（不超过100字）
+【ئۇيغۇرچە】维吾尔语摘要（不超过100字）
+
+只返回摘要内容，不要添加任何其他解释：
+
+%s`, text)
+	case "ug":
+		prompt = fmt.Sprintf("为以下新闻生成一个简洁的维吾尔语(Uyghur)摘要（不超过100字），只返回摘要内容：\n\n%s", text)
+	default:
+		prompt = fmt.Sprintf("为以下新闻生成一个简洁的中文摘要（不超过100字）：\n\n%s", text)
+	}
 
 	resp, err := s.client.CreateChatCompletion(
 		context.Background(),
@@ -173,12 +188,12 @@ func (s *AIService) ProcessNews(news *models.News) error {
 		}
 	}
 
-	// 生成摘要
+	// 生成摘要（使用相同的目标语言）
 	content := news.Content
 	if content == "" {
 		content = news.Title
 	}
-	summary, err := s.Summarize(content)
+	summary, err := s.Summarize(content, s.config.TargetLang)
 	if err != nil {
 		log.Printf("Failed to summarize: %v", err)
 	} else {
