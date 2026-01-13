@@ -1,0 +1,257 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Logo */
+.logo {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  margin: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.drawer-logo {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 移动端布局 */
+.mobile-layout {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.mobile-header {
+  display: flex;
+  align-items: center;
+  background: #001529;
+  padding: 0 16px;
+  height: 56px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.menu-trigger {
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 8px !important;
+  margin-right: 12px;
+}
+
+.mobile-title {
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.mobile-content {
+  margin-top: 56px;
+  padding: 12px;
+  background: #f5f5f5;
+  min-height: calc(100vh - 56px);
+  width: 100%;
+}
+
+/* 页面头部 */
+.page-header {
+  margin-bottom: 16px;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* 统计卡片 */
+.stat-card {
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* 新闻卡片 */
+.news-card {
+  margin-bottom: 12px;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.news-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.news-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+
+.news-title a {
+  color: #333;
+  text-decoration: none;
+}
+
+.news-title a:hover {
+  color: #667eea;
+}
+
+.news-meta {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.news-summary {
+  color: #666;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+/* 模板编辑器 */
+.template-editor {
+  display: flex;
+  gap: 16px;
+  height: calc(100vh - 300px);
+  min-height: 500px;
+}
+
+.template-editor .editor-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.template-editor .preview-panel {
+  flex: 1;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  overflow: auto;
+  background: #fff;
+}
+
+/* 配置区块 */
+.config-section {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.config-section h3 {
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* 移动端响应式 */
+@media (max-width: 767px) {
+  .page-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+
+  .page-header h2 {
+    font-size: 18px;
+  }
+
+  .template-editor {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .template-editor .editor-panel,
+  .template-editor .preview-panel {
+    width: 100%;
+    min-height: 300px;
+  }
+
+  .config-section {
+    padding: 12px;
+  }
+
+  .stat-card .ant-statistic-content-value {
+    font-size: 24px !important;
+  }
+
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .ant-table {
+    font-size: 12px;
+  }
+
+  .ant-card-body {
+    padding: 12px;
+  }
+
+  .ant-list-item {
+    padding: 12px 0;
+  }
+
+  .ant-btn {
+    padding: 4px 12px;
+  }
+
+  .ant-form-item {
+    margin-bottom: 12px;
+  }
+
+  .ant-modal {
+    max-width: calc(100vw - 32px) !important;
+    margin: 16px;
+  }
+
+  .ant-modal-body {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* AI设置页面移动端适配 */
+  .ant-row {
+    flex-direction: column;
+  }
+
+  .ant-col {
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* 平板端响应式 */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .page-header h2 {
+    font-size: 20px;
+  }
+}
