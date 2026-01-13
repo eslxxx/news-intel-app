@@ -178,7 +178,7 @@ func (s *AIService) FilterNews(news *models.News) (bool, error) {
 
 // ProcessNews 处理新闻（翻译+摘要）
 func (s *AIService) ProcessNews(news *models.News) error {
-	// 翻译标题
+	// 翻译标题（支持双语：中文+维语）
 	if news.Title != "" {
 		transTitle, err := s.Translate(news.Title, s.config.TargetLang)
 		if err != nil {
@@ -188,7 +188,7 @@ func (s *AIService) ProcessNews(news *models.News) error {
 		}
 	}
 
-	// 生成摘要（使用相同的目标语言）
+	// 生成摘要（使用相同的目标语言，支持双语）
 	content := news.Content
 	if content == "" {
 		content = news.Title
