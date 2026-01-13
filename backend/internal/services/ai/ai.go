@@ -176,7 +176,7 @@ func (s *AIService) FilterNews(news *models.News) (bool, error) {
 	return true, nil
 }
 
-// ProcessNews 处理新闻（翻译+摘要）
+// ProcessNews 处理单条新闻（翻译+摘要）- 保留用于单条处理
 func (s *AIService) ProcessNews(news *models.News) error {
 	// 翻译标题（支持双语：中文+维语）
 	if news.Title != "" {
@@ -202,6 +202,147 @@ func (s *AIService) ProcessNews(news *models.News) error {
 
 	news.Translated = true
 	return nil
+}
+
+// BatchTranslateNews 批量翻译新闻（节省 API 调用）
+func (s *AIService) BatchTranslateNews(newsList []models.News) ([]models.News, error) {
+	if len(newsList) == 0 {
+		return newsList, nil
+	}
+
+	// 构建批量翻译的 prompt
+	var newsItems string
+	for i, news := range newsList {
+		content := news.Content
+		if content == "" {
+			content = news.Title
+		}
+		// 限制内容长度，避免 token 超限
+		if len(content) > 500 {
+			content = content[:500] + "..."
+		}
+		newsItems += fmt.Sprintf("\n[新闻%d]\n标题: %s\n内容: %s\n", i+1, news.Title, content)
+	}
+
+	var prompt string
+	switch s.config.TargetLang {
+	case "zh-ug":
+		prompt = fmt.Sprintf(`请批量翻译以下新闻的标题，并为每条新闻生成摘要。要求双语输出（中文+维吾尔语）。
+
+请严格按照以下 JSON 格式返回，不要添加任何其他内容：
+[
+  {
+    "index": 1,
+    "trans_title": "【中文】中文标题\n【ئۇيغۇرچە】维吾尔语标题",
+    "trans_summary": "【中文】中文摘要（不超过100字）\n【ئۇيغۇرچە】维吾尔语摘要（不超过100字）"
+  }
+]
+
+新闻列表：%s`, newsItems)
+	case "ug":
+		prompt = fmt.Sprintf(`请批量翻译以下新闻的标题为维吾尔语，并为每条新闻生成维吾尔语摘要。
+
+请严格按照以下 JSON 格式返回，不要添加任何其他内容：
+[
+  {
+    "index": 1,
+    "trans_title": "维吾尔语标题",
+    "trans_summary": "维吾尔语摘要（不超过100字）"
+  }
+]
+
+新闻列表：%s`, newsItems)
+	default:
+		prompt = fmt.Sprintf(`请批量翻译以下新闻的标题为中文，并为每条新闻生成中文摘要。
+
+请严格按照以下 JSON 格式返回，不要添加任何其他内容：
+[
+  {
+    "index": 1,
+    "trans_title": "中文标题",
+    "trans_summary": "中文摘要（不超过100字）"
+  }
+]
+
+新闻列表：%s`, newsItems)
+	}
+
+	resp, err := s.client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: s.config.Model,
+			Messages: []openai.ChatCompletionMessage{
+				{Role: openai.ChatMessageRoleUser, Content: prompt},
+			},
+			Temperature: 0.3,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("batch translate API error: %v", err)
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil, fmt.Errorf("no response from AI")
+	}
+
+	// 解析 JSON 响应
+	content := resp.Choices[0].Message.Content
+	// 清理可能的 markdown 代码块
+	content = cleanJSONResponse(content)
+
+	var results []struct {
+		Index        int    `json:"index"`
+		TransTitle   string `json:"trans_title"`
+		TransSummary string `json:"trans_summary"`
+	}
+
+	if err := json.Unmarshal([]byte(content), &results); err != nil {
+		log.Printf("Failed to parse batch translate response: %v, content: %s", err, content)
+		return nil, fmt.Errorf("failed to parse response: %v", err)
+	}
+
+	// 将翻译结果填充回新闻列表
+	resultMap := make(map[int]struct {
+		TransTitle   string
+		TransSummary string
+	})
+	for _, r := range results {
+		resultMap[r.Index] = struct {
+			TransTitle   string
+			TransSummary string
+		}{r.TransTitle, r.TransSummary}
+	}
+
+	for i := range newsList {
+		if r, ok := resultMap[i+1]; ok {
+			newsList[i].TransTitle = r.TransTitle
+			newsList[i].TransSummary = r.TransSummary
+			newsList[i].Translated = true
+		}
+	}
+
+	return newsList, nil
+}
+
+// cleanJSONResponse 清理 AI 返回的 JSON
+func cleanJSONResponse(content string) string {
+	// 移除 markdown 代码块标记
+	if len(content) > 7 && content[:7] == "```json" {
+		content = content[7:]
+	} else if len(content) > 3 && content[:3] == "```" {
+		content = content[3:]
+	}
+	if len(content) > 3 && content[len(content)-3:] == "```" {
+		content = content[:len(content)-3]
+	}
+	// 去除首尾空白
+	for len(content) > 0 && (content[0] == '\n' || content[0] == '\r' || content[0] == ' ' || content[0] == '\t') {
+		content = content[1:]
+	}
+	for len(content) > 0 && (content[len(content)-1] == '\n' || content[len(content)-1] == '\r' || content[len(content)-1] == ' ' || content[len(content)-1] == '\t') {
+		content = content[:len(content)-1]
+	}
+	return content
 }
 
 // ProcessUnprocessedNews 处理未处理的新闻
@@ -239,26 +380,59 @@ func (s *AIService) ProcessUnprocessedNews(limit int) error {
 	return nil
 }
 
-// ProcessAndMoveToReading 处理新闻列表并移入阅读窗口
+// ProcessAndMoveToReading 批量处理新闻列表并移入阅读窗口
 func (s *AIService) ProcessAndMoveToReading(newsList []models.News) error {
-	for _, news := range newsList {
-		if err := s.ProcessNews(&news); err != nil {
-			log.Printf("Failed to process news %s: %v", news.ID, err)
+	if len(newsList) == 0 {
+		return nil
+	}
+
+	log.Printf("Batch translating %d news...", len(newsList))
+
+	// 分批处理，每批最多 5 条（避免 token 超限）
+	batchSize := 5
+	for i := 0; i < len(newsList); i += batchSize {
+		end := i + batchSize
+		if end > len(newsList) {
+			end = len(newsList)
+		}
+		batch := newsList[i:end]
+
+		// 批量翻译
+		translatedBatch, err := s.BatchTranslateNews(batch)
+		if err != nil {
+			log.Printf("Batch translate failed, falling back to single mode: %v", err)
+			// 批量翻译失败，回退到逐条翻译
+			for j := range batch {
+				if err := s.ProcessNews(&batch[j]); err != nil {
+					log.Printf("Failed to process news %s: %v", batch[j].ID, err)
+					continue
+				}
+				s.saveNewsToReading(&batch[j])
+			}
 			continue
 		}
 
-		// 更新数据库，同时移入阅读窗口
-		_, err := database.DB.Exec(`
-			UPDATE news SET translated = 1, trans_title = ?, trans_summary = ?, in_reading = 1, reading_at = ? WHERE id = ?
-		`, news.TransTitle, news.TransSummary, time.Now(), news.ID)
-		if err != nil {
-			log.Printf("Failed to update news %s: %v", news.ID, err)
-		} else {
-			log.Printf("Translated and moved to reading: %s", news.Title)
+		// 保存翻译结果到数据库
+		for j := range translatedBatch {
+			s.saveNewsToReading(&translatedBatch[j])
 		}
+
+		log.Printf("Batch translated %d news (batch %d/%d)", len(translatedBatch), (i/batchSize)+1, (len(newsList)+batchSize-1)/batchSize)
 	}
 
 	return nil
+}
+
+// saveNewsToReading 保存单条新闻到阅读窗口
+func (s *AIService) saveNewsToReading(news *models.News) {
+	_, err := database.DB.Exec(`
+		UPDATE news SET translated = 1, trans_title = ?, trans_summary = ?, in_reading = 1, reading_at = ? WHERE id = ?
+	`, news.TransTitle, news.TransSummary, time.Now(), news.ID)
+	if err != nil {
+		log.Printf("Failed to update news %s: %v", news.ID, err)
+	} else {
+		log.Printf("Translated: %s", news.Title)
+	}
 }
 
 // GenerateEmailTemplate 根据用户描述生成邮件模板
